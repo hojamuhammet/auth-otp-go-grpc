@@ -6,6 +6,7 @@ import (
 	"net"
 	"sync"
 
+	pb "github.com/hojamuhammet/go-grpc-otp-rabbitmq/gen"
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -14,7 +15,7 @@ import (
 // Server represents your gRPC server.
 type Server struct {
     server *grpc.Server
-    wg     sync.WaitGroup
+    pb.UnimplementedUserServiceServer
 }
 
 // NewServer creates a new instance of the Server.
@@ -50,5 +51,6 @@ func (s *Server) Stop() {
 
 // Wait waits for the server to finish gracefully.
 func (s *Server) Wait() {
-    s.wg.Wait()
+    var wg sync.WaitGroup
+    wg.Wait()
 }
