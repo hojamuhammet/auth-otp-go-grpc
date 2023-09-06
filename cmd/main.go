@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -9,13 +10,17 @@ import (
 
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/config"
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/server"
+	"github.com/joho/godotenv"
 	"github.com/lib/pq"
 )
 
 func main() {
-    // Load configuration from your configuration file or environment variables
-    cfg := config.LoadConfig()
+    if err := godotenv.Load(); err != nil {
+        log.Fatalf("Error loading the env variables: %v", err)
+    }
 
+    cfg := config.LoadConfig()
+    
 	dbURL := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
         cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName)
 		
@@ -31,7 +36,7 @@ func main() {
 
     // Start the gRPC server in a separate goroutine
     go func() {
-        if err := grpcServer.Start(cfg.GRPCPort); err != nil {
+        if err := grpcServer.Start(context.Background(), &cfg); err != nil {
             log.Fatalf("Failed to start gRPC server: %v", err)
         }
     }()
@@ -40,10 +45,8 @@ func main() {
     sigCh := make(chan os.Signal, 1)
     signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
-    select {
-    case <-sigCh:
-        log.Println("Received termination signal. Shutting down...")
-        grpcServer.Stop() // Gracefully stop the gRPC server
-        grpcServer.Wait() // Wait for the server to finish gracefully
-    }
+    <-sigCh
+    log.Println("Received termination signal. Shutting down...")
+    grpcServer.Stop() // Gracefully stop the gRPC server
+    grpcServer.Wait() // Wait for the server to finish gracefully
 }

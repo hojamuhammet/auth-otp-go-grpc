@@ -1,87 +1,54 @@
-// server.go
 package server
 
 import (
-	"fmt"
+	"context"
 	"log"
 	"net"
-	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 
+	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/config"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 // Server represents your gRPC server.
 type Server struct {
-    grpcServer *grpc.Server
-    wg         sync.WaitGroup
-    stopped    bool // Custom flag to track server status
+    server *grpc.Server
+    wg     sync.WaitGroup
 }
 
 // NewServer creates a new instance of the Server.
 func NewServer() *Server {
-    return &Server{
-        grpcServer: grpc.NewServer(),
-    }
+    return &Server{}
 }
 
 // Start starts the gRPC server.
-func (s *Server) Start(port string) {
-    listener, err := net.Listen("tcp", ":"+port)
+func (s *Server) Start(ctx context.Context, cfg *config.Config) error {
+    lis, err := net.Listen("tcp", ":"+cfg.GRPCPort)
     if err != nil {
-        log.Fatalf("Failed to listen: %v", err)
+        return err
     }
-    fmt.Printf("Server listening on port %s...\n", port)
 
-    // Register your gRPC service implementation here, e.g., auth.RegisterUserServiceServer(s.grpcServer, &yourService{})
+    s.server = grpc.NewServer()
 
-    // Start the server in a goroutine
-    s.wg.Add(1)
-    go func() {
-        defer s.wg.Done()
-        if err := s.grpcServer.Serve(listener); err != nil {
-            log.Fatalf("Failed to serve: %v", err)
-        }
-    }()
+    // Register any gRPC services here if needed
+    // Example: pb.RegisterSomeServiceServer(s.server, &someService{})
+
+    reflection.Register(s.server)
+
+    log.Printf("gRPC server started on port %s", cfg.GRPCPort)
+
+    return s.server.Serve(lis)
 }
 
 // Stop stops the gRPC server gracefully.
 func (s *Server) Stop() {
-    // Gracefully stop the gRPC server
-    s.grpcServer.GracefulStop()
-
-    // Set the custom flag to indicate that the server has stopped
-    s.stopped = true
+    if s.server != nil {
+        s.server.GracefulStop()
+    }
 }
 
 // Wait waits for the server to finish gracefully.
 func (s *Server) Wait() {
-    // Create a signal channel to capture termination signals (e.g., SIGINT, SIGTERM)
-    sigCh := make(chan os.Signal, 1)
-    signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-
-    // Wait for termination signals or server shutdown
-    select {
-    case <-sigCh:
-        // Handle termination signals if needed
-    case <-s.waitServerStopped():
-        // Server has stopped gracefully
-    }
-
-    // Wait for any remaining goroutines to finish
     s.wg.Wait()
-}
-
-// waitServerStopped waits until the server is marked as stopped.
-func (s *Server) waitServerStopped() <-chan struct{} {
-    ch := make(chan struct{})
-    go func() {
-        for !s.stopped {
-            // Wait until the server is stopped
-        }
-        close(ch)
-    }()
-    return ch
 }
