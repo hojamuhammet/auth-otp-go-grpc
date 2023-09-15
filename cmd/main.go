@@ -9,7 +9,6 @@ import (
 	"syscall"
 
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/config"
-	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/rabbitmq"
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/server"
 	"github.com/joho/godotenv"
 	"github.com/lib/pq"
@@ -34,13 +33,6 @@ func main() {
 
     // Create a new gRPC server instance
     grpcServer := server.NewServer()
-
-    // Create an instance of RabbitMQService
-    rabbitMQService, err := rabbitmq.NewRabbitMQService()
-    if err != nil {
-        log.Fatalf("Failed to create RabbitMQ service: %v", err)
-    }
-    defer rabbitMQService.Close()
 
     // Start the gRPC server in a separate goroutine
     go func() {
