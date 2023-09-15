@@ -6,6 +6,8 @@ import (
 	"log"
 
 	pb "github.com/hojamuhammet/go-grpc-otp-rabbitmq/gen"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type OTPService struct {
@@ -26,8 +28,14 @@ func (s *OTPService) CheckPhoneNumber(ctx context.Context, req *pb.CheckPhoneNum
 	var exists bool
 	err := s.db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE phone_number = $1)", phoneNumber).Scan(&exists)
 	if err != nil {
-		log.Printf("Failed to check phone number existence: %v", err)
-		return nil, err
+		log.Printf("Error checking phone number existence in the database: %v", err)
+
+		// Check if the error is due to a database connection issue
+		if err == sql.ErrNoRows {
+			return nil, status.Error(codes.NotFound, "Phone number not found")
+		}
+
+		return nil, status.Error(codes.Internal, "Internal server error")
 	}
 
 	// Create and return the response
