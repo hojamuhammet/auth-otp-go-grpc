@@ -20,7 +20,6 @@ func NewOTPService(db *sql.DB) *OTPService {
 	}
 }
 
-// CheckPhoneNumber is the implementation of the CheckPhoneNumber gRPC method.
 func (s *OTPService) CheckPhoneNumber(ctx context.Context, req *pb.CheckPhoneNumberRequest) (*pb.CheckPhoneNumberResponse, error) {
 	phoneNumber := req.PhoneNumber
 
@@ -38,7 +37,6 @@ func (s *OTPService) CheckPhoneNumber(ctx context.Context, req *pb.CheckPhoneNum
 		return nil, status.Error(codes.Internal, "Internal server error")
 	}
 
-	// Create and return the response
 	response := &pb.CheckPhoneNumberResponse{
 		Exists: exists,
 	}
