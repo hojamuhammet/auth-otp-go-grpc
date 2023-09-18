@@ -14,7 +14,6 @@ var recentOTPsMutex sync.Mutex
 
 // Function to generate a random OTP
 func GenerateRandomOTP() string {
-    // Define the range for OTPs
     min := 100000
     max := 999999
 
