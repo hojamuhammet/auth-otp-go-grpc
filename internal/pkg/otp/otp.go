@@ -4,11 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"log"
-	"math/rand"
-	"strconv"
-	"time"
 
 	pb "github.com/hojamuhammet/go-grpc-otp-rabbitmq/gen"
+	utils "github.com/hojamuhammet/go-grpc-otp-rabbitmq/utils"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -55,7 +53,7 @@ func (s *OTPService) GenerateOTP(ctx context.Context, req *pb.GenerateOTPRequest
 	phoneNumber := req.PhoneNumber
 
 	// Generate a 6-digit OTP
-	otp := generateRandomOTP()
+	otp := utils.GenerateRandomOTP()
 
 	// Update the user's OTP and OTP creation timestamp in the database
 	if err := s.updateUserOTP(userID, otp); err != nil {
@@ -73,12 +71,6 @@ func (s *OTPService) GenerateOTP(ctx context.Context, req *pb.GenerateOTPRequest
 	return response, nil
 }
 
-func generateRandomOTP() string {
-	rand.Seed(time.Now().UnixNano())
-	min := 100000
-	max := 999999
-	return strconv.Itoa(rand.Intn(max-min+1) + min)
-}
 
 func (s *OTPService) updateUserOTP(userID int64, otp string) error {
 	sqlStatement := `
