@@ -4,6 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"log"
+	"math/rand"
+	"strconv"
+	"time"
 
 	pb "github.com/hojamuhammet/go-grpc-otp-rabbitmq/gen"
 	"google.golang.org/grpc/codes"
@@ -46,3 +49,49 @@ func (s *OTPService) CheckPhoneNumber(ctx context.Context, req *pb.CheckPhoneNum
 	return response, nil
 }
 
+func (s *OTPService) GenerateOTP(ctx context.Context, req *pb.GenerateOTPRequest) (*pb.GenerateOTPResponse, error) {
+	// Extract user information from the request
+	userID := req.UserId
+	phoneNumber := req.PhoneNumber
+
+	// Generate a 6-digit OTP
+	otp := generateRandomOTP()
+
+	// Update the user's OTP and OTP creation timestamp in the database
+	if err := s.updateUserOTP(userID, otp); err != nil {
+		log.Printf("Error updating OTP in the database: %v", err)
+		return nil, status.Error(codes.Internal, "Failed to generate and save OTP")
+	}
+
+	// Create and return the response
+	response := &pb.GenerateOTPResponse{
+		Otp: otp,
+	}
+
+	log.Printf("Generated OTP %s for user %d with phone number %s", otp, userID, phoneNumber)
+
+	return response, nil
+}
+
+func generateRandomOTP() string {
+	rand.Seed(time.Now().UnixNano())
+	min := 100000
+	max := 999999
+	return strconv.Itoa(rand.Intn(max-min+1) + min)
+}
+
+func (s *OTPService) updateUserOTP(userID int64, otp string) error {
+	sqlStatement := `
+        UPDATE users
+        SET otp = $1, otp_created_at = NOW()
+        WHERE id = $2
+    `
+
+	_, err := s.db.Exec(sqlStatement, otp, userID)
+	if err != nil {
+		log.Printf("Error updating OTP in the database: %v", err)
+		return err
+	}
+
+	return nil
+}
