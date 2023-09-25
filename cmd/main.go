@@ -9,9 +9,9 @@ import (
 	"syscall"
 
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/config"
+	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/database"
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/server"
 	"github.com/joho/godotenv"
-	"github.com/lib/pq"
 )
 
 func main() {
@@ -25,7 +25,7 @@ func main() {
         cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName)
 		
     // Initialize a PostgreSQL database connection pool
-    db, err := pq.Open(dbURL)
+    db, err := database.NewDatabase(dbURL)
     if err != nil {
         log.Fatalf("Failed to connect to the database: %v", err)
     }
