@@ -16,7 +16,7 @@ type OTPService struct {
 }
 
 func NewOTPService(db *sql.DB) *OTPService {
-	return &OTPService{
+	return &OTPService {
 		db: db,
 	}
 }
