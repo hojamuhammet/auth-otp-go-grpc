@@ -9,7 +9,6 @@ import (
 	"syscall"
 
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/config"
-	rmq "github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/rabbitmq"
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/server"
 	"github.com/joho/godotenv"
 	"github.com/lib/pq"
@@ -41,17 +40,6 @@ func main() {
             log.Fatalf("Failed to start gRPC server: %v", err)
         }
     }()
-
-    // Set up RabbitMQ
-	rmq, err := rmq.NewRabbitMQ()
-	if err != nil {
-		log.Fatalf("Failed to set up RabbitMQ: %v", err)
-	}
-	defer rmq.Close()
-
-	if err := rmq.Setup(); err != nil {
-		log.Fatalf("Failed to set up RabbitMQ: %v", err)
-	}
 
     // Handle graceful shutdown on SIGINT and SIGTERM signals
     sigCh := make(chan os.Signal, 1)
