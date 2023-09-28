@@ -8,19 +8,26 @@ import (
 
 	pb "github.com/hojamuhammet/go-grpc-otp-rabbitmq/gen"
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/config"
+	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/database"
+	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/otp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
 // Server represents your gRPC server.
 type Server struct {
+    cfg *config.Config
     server *grpc.Server
+    db *database.Database
     pb.UnimplementedUserServiceServer
 }
 
 // NewServer creates a new instance of the Server.
-func NewServer() *Server {
-    return &Server{}
+func NewServer(cfg *config.Config, db *database.Database) *Server {
+    return &Server{
+        cfg: cfg,
+        db: db,
+    }
 }
 
 // Start starts the gRPC server.
@@ -32,12 +39,12 @@ func (s *Server) Start(ctx context.Context, cfg *config.Config) error {
 
     s.server = grpc.NewServer()
 
-    // Register any gRPC services here if needed
-    // Example: pb.RegisterSomeServiceServer(s.server, &someService{})
+    otpService := otp.NewOTPService(s.cfg, s.db)
+    pb.RegisterUserServiceServer(s.server, otpService)
 
     reflection.Register(s.server)
 
-    log.Printf("gRPC server started on port %s", cfg.GRPCPort)
+    log.Printf("gRPC server started on port %s", s.cfg.GRPCPort)
 
     return s.server.Serve(lis)
 }

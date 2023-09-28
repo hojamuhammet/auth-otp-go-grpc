@@ -10,7 +10,7 @@ import (
 
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/config"
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/database"
-	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/server"
+	server "github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/server"
 	"github.com/joho/godotenv"
 )
 
@@ -32,7 +32,7 @@ func main() {
     defer db.Close()
 
     // Create a new gRPC server instance
-    grpcServer := server.NewServer()
+    grpcServer := server.NewServer(&cfg, db)
 
     // Start the gRPC server in a separate goroutine
     go func() {

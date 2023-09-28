@@ -6,17 +6,22 @@ import (
 	"log"
 
 	pb "github.com/hojamuhammet/go-grpc-otp-rabbitmq/gen"
+	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/config"
+	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/database"
 	utils "github.com/hojamuhammet/go-grpc-otp-rabbitmq/utils"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type OTPService struct {
-	db *sql.DB
+	cfg *config.Config
+	db *database.Database
+	pb.UnimplementedUserServiceServer
 }
 
-func NewOTPService(db *sql.DB) *OTPService {
-	return &OTPService {
+func NewOTPService(cfg *config.Config, db *database.Database) *OTPService {
+	return &OTPService{
+		cfg: cfg,
 		db: db,
 	}
 }
@@ -26,7 +31,7 @@ func (s *OTPService) CheckPhoneNumber(ctx context.Context, req *pb.CheckPhoneNum
 
 	// Query the database to check if the phone number exists
 	var exists bool
-	err := s.db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE phone_number = $1)", phoneNumber).Scan(&exists)
+	err := s.db.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE phone_number = $1)", phoneNumber).Scan(&exists)
 	if err != nil {
 		log.Printf("Error checking phone number existence in the database: %v", err)
 
@@ -79,7 +84,7 @@ func (s *OTPService) updateUserOTP(userID int64, otp string) error {
         WHERE id = $2
     `
 
-	_, err := s.db.Exec(sqlStatement, otp, userID)
+	_, err := s.db.DB.Exec(sqlStatement, otp, userID)
 	if err != nil {
 		log.Printf("Error updating OTP in the database: %v", err)
 		return err
