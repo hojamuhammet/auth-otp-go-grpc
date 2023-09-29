@@ -8,9 +8,10 @@ option go_package = "./gen";
 message User {
     int64 id = 1;
     string phone_number = 2;
+    string otp = 3;
 }
 
-// Request message to register a new user.
+// Request message for user registration.
 message RegisterUserRequest {
     string phone_number = 1;
 }
@@ -19,27 +20,7 @@ message RegisterUserRequest {
 message RegisterUserResponse {
     User user = 1;
     string jwt_token = 2;
-}
-
-// Request message to check if a phone number exists.
-message CheckPhoneNumberRequest {
-    string phone_number = 1;
-}
-
-// Response message for phone number existence check.
-message CheckPhoneNumberResponse {
-    bool exists = 1;
-}
-
-// Request message to generate an OTP for a user.
-message GenerateOTPRequest {
-    int64 user_id = 1;
-    string phone_number = 2;
-}
-
-// Response message for OTP generation.
-message GenerateOTPResponse {
-    string otp = 1;
+    string message = 3;
 }
 
 // Request message to verify an OTP for a user.
@@ -49,23 +30,18 @@ message VerifyOTPRequest {
     string otp = 3;
 }
 
-// Response message for OTP verification.
+// Response message for OTP verification and JWT token generation.
 message VerifyOTPResponse {
     bool valid = 1;
     string jwt_token = 2;
+    string message = 3;
 }
 
 // Define the UserService service.
 service UserService {
-    // Register a new user with a phone number.
+    // Register a new user with a phone number and return JWT token and success message.
     rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse);
 
-    // Check if a phone number exists.
-    rpc CheckPhoneNumber(CheckPhoneNumberRequest) returns (CheckPhoneNumberResponse);
-
-    // Generate an OTP for a user.
-    rpc GenerateOTP(GenerateOTPRequest) returns (GenerateOTPResponse);
-
-    // Verify an OTP and return a JWT token if valid.
+    // Verify an OTP and return a JWT token and success message if valid.
     rpc VerifyOTP(VerifyOTPRequest) returns (VerifyOTPResponse);
 }
