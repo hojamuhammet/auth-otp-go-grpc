@@ -8,7 +8,7 @@ option go_package = "./gen";
 message User {
     int64 id = 1;
     string phone_number = 2;
-    string otp = 3;
+    int32 otp = 3;
 }
 
 // Request message for user registration.
@@ -27,7 +27,7 @@ message RegisterUserResponse {
 message VerifyOTPRequest {
     int64 user_id = 1;
     string phone_number = 2;
-    string otp = 3;
+    int32 otp = 3;
 }
 
 // Response message for OTP verification and JWT token generation.
