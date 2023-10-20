@@ -10,6 +10,7 @@ import (
 
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/config"
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/database"
+	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/rabbitmq"
 	server "github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/server"
 	"github.com/joho/godotenv"
 )
@@ -30,6 +31,13 @@ func main() {
         log.Fatalf("Failed to connect to the database: %v", err)
     }
     defer db.Close()
+
+    // Initialize RabbitMQ
+	rabbitMQConn, err := rabbitmq.InitializeRabbitMQ(cfg.RabbitMQ_URL)
+	if err != nil {
+		log.Fatalf("Failed to initialize RabbitMQ: %v", err)
+	}
+	defer rabbitMQConn.Close()
 
     // Create a new gRPC server instance
     grpcServer := server.NewServer(&cfg, db)
