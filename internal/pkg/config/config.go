@@ -13,6 +13,7 @@ type Config struct {
     DBPassword string
     DBName     string
     GRPCPort   string
+    RabbitMQ_URL string
 }
 
 // LoadConfig loads the application configuration from environment variables.
@@ -24,5 +25,6 @@ func LoadConfig() Config {
         DBPassword: os.Getenv("DB_PASSWORD"),
         DBName:     os.Getenv("DB_NAME"),
         GRPCPort:   os.Getenv("GRPC_PORT"),
+        RabbitMQ_URL: os.Getenv("RABBITMQ_URL"),
     }
 }
