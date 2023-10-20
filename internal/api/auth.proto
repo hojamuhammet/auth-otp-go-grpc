@@ -6,9 +6,8 @@ option go_package = "./gen";
 
 // Define the User message that represents a registered user.
 message User {
-    int64 id = 1;
-    string phone_number = 2;
-    int32 otp = 3;
+    string phone_number = 1;
+    int32 otp = 2;
 }
 
 // Request message for user registration.
@@ -19,8 +18,6 @@ message RegisterUserRequest {
 // Response message for user registration.
 message RegisterUserResponse {
     User user = 1;
-    string jwt_token = 2;
-    string message = 3;
 }
 
 // Request message to verify an OTP for a user.
