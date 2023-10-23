@@ -10,20 +10,24 @@ import (
 	pb "github.com/hojamuhammet/go-grpc-otp-rabbitmq/gen"
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/config"
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/database"
+	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/rabbitmq"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 type OTPService struct {
 	cfg *config.Config
 	db *database.Database
+    rabbitMQService *rabbitmq.RabbitMQService
 	pb.UnimplementedUserServiceServer
 }
 
-func NewOTPService(cfg *config.Config, db *database.Database) *OTPService {
+func NewOTPService(cfg *config.Config, db *database.Database, rabbitMQService *rabbitmq.RabbitMQService) *OTPService {
 	return &OTPService{
 		cfg: cfg,
 		db: db,
+        rabbitMQService: rabbitMQService,
 	}
 }
 
@@ -67,6 +71,20 @@ func (s *OTPService) RegisterUser(ctx context.Context, req *pb.RegisterUserReque
 
     log.Printf("Registered user with phone number: %s", phoneNumber)
 
+    // Marshal the response into Protocol Buffers binary format
+    responseBytes, err := proto.Marshal(response)
+    if err != nil {
+        log.Printf("Error marshaling response: %v", err)
+        return nil, status.Error(codes.Internal, "Failed to register user")
+    }
+
+    // Send the response to RabbitMQ using the PublishMessage function
+    err = s.rabbitMQService.PublishMessage(ctx, "otp_queue", responseBytes)
+    if err != nil {
+        log.Printf("Failed to send message to RabbitMQ: %v", err)
+        // Handle the error or return an appropriate gRPC error.
+    }
+
     // Return the response
     return response, nil
 }
@@ -80,7 +98,6 @@ func GenerateOTP() int {
 
     return otpCode
 }
-
 
 func (s *OTPService) checkUserExistenceInDatabase(phoneNumber string) (bool, error) {
     // Query the database to check if a user with the given phone number exists
