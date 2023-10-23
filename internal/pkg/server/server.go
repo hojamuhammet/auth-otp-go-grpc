@@ -10,6 +10,7 @@ import (
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/config"
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/database"
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/otp"
+	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/rabbitmq"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -19,14 +20,16 @@ type Server struct {
     cfg *config.Config
     server *grpc.Server
     db *database.Database
+    rabbitMQService *rabbitmq.RabbitMQService
     pb.UnimplementedUserServiceServer
 }
 
 // NewServer creates a new instance of the Server.
-func NewServer(cfg *config.Config, db *database.Database) *Server {
+func NewServer(cfg *config.Config, db *database.Database, rabbitMQService *rabbitmq.RabbitMQService) *Server {
     return &Server{
         cfg: cfg,
         db: db,
+        rabbitMQService: rabbitMQService,
     }
 }
 
@@ -39,7 +42,7 @@ func (s *Server) Start(ctx context.Context, cfg *config.Config) error {
 
     s.server = grpc.NewServer()
 
-    otpService := otp.NewOTPService(s.cfg, s.db)
+    otpService := otp.NewOTPService(s.cfg, s.db, s.rabbitMQService)
     pb.RegisterUserServiceServer(s.server, otpService)
 
     reflection.Register(s.server)
