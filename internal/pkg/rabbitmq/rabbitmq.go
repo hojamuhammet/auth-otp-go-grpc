@@ -32,7 +32,6 @@ func (r *RabbitMQService) Close() {
     }
 }
 
-
 // PublishMessage publishes a message to the specified queue.
 func (r *RabbitMQService) PublishMessage(ctx context.Context, queueName string, message []byte) error {
     // Create a channel for the connection
@@ -63,7 +62,7 @@ func (r *RabbitMQService) PublishMessage(ctx context.Context, queueName string, 
         false,      // Mandatory
         false,      // Immediate
         amqp091.Publishing{
-            ContentType: "application/octet-stream",
+            ContentType: "application/grpc+proto",
             Body:        message,
         },
     )
