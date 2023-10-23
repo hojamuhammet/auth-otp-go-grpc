@@ -32,15 +32,15 @@ func main() {
     }
     defer db.Close()
 
-    // Initialize RabbitMQ
-	rabbitMQConn, err := rabbitmq.InitializeRabbitMQ(cfg.RabbitMQ_URL)
-	if err != nil {
-		log.Fatalf("Failed to initialize RabbitMQ: %v", err)
-	}
-	defer rabbitMQConn.Close()
+    // Initialize RabbitMQ service
+    rabbitMQService, err := rabbitmq.InitRabbitMQConnection(cfg.RabbitMQ_URL)
+    if err != nil {
+        log.Fatalf("Failed to initialize RabbitMQ service: %v", err)
+    }
+    defer rabbitMQService.Close()
 
     // Create a new gRPC server instance
-    grpcServer := server.NewServer(&cfg, db)
+    grpcServer := server.NewServer(&cfg, db, rabbitMQService)
 
     // Start the gRPC server in a separate goroutine
     go func() {
