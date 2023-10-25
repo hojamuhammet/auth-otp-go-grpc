@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	pb "github.com/hojamuhammet/go-grpc-otp-rabbitmq/gen"
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/config"
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/database"
@@ -99,6 +100,26 @@ func GenerateOTP() int {
     return otpCode
 }
 
+// GenerateJWTToken generates a JWT token for the given phone number.
+func GenerateJWTToken(phoneNumber string, secretKey string) (string, error) {
+	// Define the claims for the JWT token
+	claims := jwt.MapClaims{
+		"phone_number": phoneNumber,
+		"exp":          time.Now().Add(time.Hour * 24).Unix(), // Token expiration time (adjust as needed)
+	}
+
+	// Create a new token with the claims
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Sign the token with a secret key
+	tokenString, err := token.SignedString([]byte(secretKey))
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
+}
+
 func (s *OTPService) checkUserExistenceInDatabase(phoneNumber string) (bool, error) {
     // Query the database to check if a user with the given phone number exists
     var exists bool
@@ -137,10 +158,7 @@ func (s *OTPService) updateUserOTP(phoneNumber string, newOTP int) error {
 }
 
 // storeUserInDatabase creates a new user in the database with the given phone number and OTP,
-// setting the otp_created_at timestamp to the current time.
 func (s *OTPService) storeUserInDatabase(phoneNumber string, otp int) error {
-    // Prepare the SQL statement to insert a new user with phone number and OTP,
-    // setting the otp_created_at column to the current time.
     sqlStatement := `
         INSERT INTO users (phone_number, otp, otp_created_at)
         VALUES ($1, $2, CURRENT_TIMESTAMP)
