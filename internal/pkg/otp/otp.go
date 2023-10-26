@@ -3,8 +3,10 @@ package otp
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"log"
 	"math/rand"
+	"os"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -100,26 +102,6 @@ func GenerateOTP() int {
     return otpCode
 }
 
-// GenerateJWTToken generates a JWT token for the given phone number.
-func GenerateJWTToken(phoneNumber string, secretKey string) (string, error) {
-	// Define the claims for the JWT token
-	claims := jwt.MapClaims{
-		"phone_number": phoneNumber,
-		"exp":          time.Now().Add(time.Hour * 24).Unix(), // Token expiration time (adjust as needed)
-	}
-
-	// Create a new token with the claims
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	// Sign the token with a secret key
-	tokenString, err := token.SignedString([]byte(secretKey))
-	if err != nil {
-		return "", err
-	}
-
-	return tokenString, nil
-}
-
 func (s *OTPService) checkUserExistenceInDatabase(phoneNumber string) (bool, error) {
     // Query the database to check if a user with the given phone number exists
     var exists bool
@@ -161,7 +143,7 @@ func (s *OTPService) updateUserOTP(phoneNumber string, newOTP int) error {
 func (s *OTPService) storeUserInDatabase(phoneNumber string, otp int) error {
     sqlStatement := `
         INSERT INTO users (phone_number, otp, otp_created_at)
-        VALUES ($1, $2, CURRENT_TIMESTAMP)
+        VALUES ($1, $2, NOW())
     `
 
     // Execute the SQL statement
@@ -172,4 +154,98 @@ func (s *OTPService) storeUserInDatabase(phoneNumber string, otp int) error {
     }
 
     return nil
+}
+
+func (s *OTPService) VerifyOTP(ctx context.Context, req *pb.VerifyOTPRequest) (*pb.VerifyOTPResponse, error) {
+    phoneNumber := req.PhoneNumber
+    otpCode := req.Otp
+
+    // Query the database to get the user's OTP and OTP creation time
+    var otpFromDB int
+    var otpCreatedAt time.Time
+    err := s.db.DB.QueryRow("SELECT otp, otp_created_at FROM users WHERE phone_number = $1", phoneNumber).Scan(&otpFromDB, &otpCreatedAt)
+    if err != nil {
+        log.Printf("Error querying OTP from the database: %v", err)
+        return nil, status.Error(codes.Internal, "OTP verification failed")
+    }
+
+    // Calculate the time difference between the current time and OTP creation time
+    timeDifference := time.Since(otpCreatedAt)
+
+    // Check if the OTP code matches and the OTP was generated within the last 5 minutes
+    if otpCode == int32(otpFromDB) {
+        if timeDifference <= 5*time.Minute {
+            // Generate a JWT token for the user
+            jwtToken, err := GenerateJWTToken(phoneNumber, s.cfg.JWTSecret)
+            if err != nil {
+                log.Printf("Error generating JWT token: %v", err)
+                return nil, status.Error(codes.Internal, "OTP verification failed")
+            }
+
+            response := &pb.VerifyOTPResponse{
+                Valid:     true,
+                JwtToken:  jwtToken,
+                Message:   "OTP verification successful",
+            }
+
+            return response, nil
+        } else {
+            // OTP has expired
+            response := &pb.VerifyOTPResponse{
+                Valid:     false,
+                JwtToken:  "",
+                Message:   "OTP expired",
+            }
+
+            return response, nil
+        }
+    } else {
+        // If the OTP is incorrect, return an error response
+        response := &pb.VerifyOTPResponse{
+            Valid:     false,
+            JwtToken:  "",
+            Message:   "Invalid OTP",
+        }
+
+        return response, nil
+    }
+}
+
+func GenerateJWTToken(phoneNumber string, jwtSecret string) (string, error) {
+    // Create a new token
+    token := jwt.New(jwt.SigningMethodHS256)
+    claims := token.Claims.(jwt.MapClaims)
+
+    // Set the claims for the token
+    claims["phone_number"] = phoneNumber
+    claims["exp"] = time.Now().Add(time.Hour * 24).Unix() // Token expiration time (1 day)
+
+    // Sign the token with the JWT secret
+    tokenString, err := token.SignedString([]byte(jwtSecret))
+    if err != nil {
+        return "", err
+    }
+
+    return tokenString, nil
+}
+
+func SetJWTSecretEnv() {
+    // Generate a secure JWT secret key
+    jwtSecret, err := GenerateJWTSecretKey(64)
+    if err != nil {
+        log.Fatalf("Failed to generate JWT secret: %v", err)
+    }
+
+    // Set the JWT secret key as an environment variable
+    os.Setenv("JWT_SECRET", jwtSecret)
+}
+
+// GenerateJWTSecretKey generates a secure JWT secret key.
+func GenerateJWTSecretKey(keyLength int) (string, error) {
+    keyBytes := make([]byte, keyLength)
+    _, err := rand.Read(keyBytes)
+    if err != nil {
+        return "", err
+    }
+    return base64.StdEncoding.EncodeToString(keyBytes), nil
 }
