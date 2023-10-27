@@ -33,10 +33,12 @@ message VerifyOTPResponse {
     string message = 3;
 }
 
+message Empty {}
+
 // Define the UserService service.
 service UserService {
-    // Register a new user with a phone number and return JWT token and success message.
-    rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse);
+    // Return empty for security reasons
+    rpc RegisterUser(RegisterUserRequest) returns (Empty);
 
     // Verify an OTP and return a JWT token and success message if valid.
     rpc VerifyOTP(VerifyOTPRequest) returns (VerifyOTPResponse);

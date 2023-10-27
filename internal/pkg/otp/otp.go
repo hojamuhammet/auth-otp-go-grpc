@@ -33,9 +33,8 @@ func NewOTPService(cfg *config.Config, db *database.Database, rabbitMQService *r
         rabbitMQService: rabbitMQService,
 	}
 }
-
 // RegisterUser handles user registration and OTP generation.
-func (s *OTPService) RegisterUser(ctx context.Context, req *pb.RegisterUserRequest) (*pb.RegisterUserResponse, error) {
+func (s *OTPService) RegisterUser(ctx context.Context, req *pb.RegisterUserRequest) (*pb.Empty, error) {
     phoneNumber := req.PhoneNumber
 
     // Check if the user with the given phone number exists
@@ -64,33 +63,41 @@ func (s *OTPService) RegisterUser(ctx context.Context, req *pb.RegisterUserReque
         }
     }
 
-    // Prepare the response message
-    response := &pb.RegisterUserResponse{
+    // Send the required data to RabbitMQ
+    err = s.sendDataToRabbitMQ(phoneNumber, otpCode)
+    if err != nil {
+        log.Printf("Failed to send data to RabbitMQ: %v", err)
+        // Handle the error or return an appropriate gRPC error.
+    }
+
+    // Return an empty response
+    return &pb.Empty{}, nil
+}
+
+func (s *OTPService) sendDataToRabbitMQ(phoneNumber string, otpCode int32) error {
+    // Prepare the data you want to send to RabbitMQ
+    data := &pb.RegisterUserResponse{
         User: &pb.User{
             PhoneNumber: phoneNumber,
             Otp:         otpCode,
         },
     }
 
-    log.Printf("Registered user with phone number: %s", phoneNumber)
-
-    // Marshal the response into Protocol Buffers binary format
-    responseBytes, err := proto.Marshal(response)
+    // Marshal the data into Protocol Buffers binary format
+    dataBytes, err := proto.Marshal(data)
     if err != nil {
-        log.Printf("Error marshaling response: %v", err)
-        return nil, status.Error(codes.Internal, "Failed to register user")
+        return err
     }
 
-    // Send the response to RabbitMQ using the PublishMessage function
-    err = s.rabbitMQService.PublishMessage(ctx, "otp_queue", responseBytes)
+    // Send the data to RabbitMQ using the PublishMessage function
+    err = s.rabbitMQService.PublishMessage(context.Background(), "otp_queue", dataBytes)
     if err != nil {
-        log.Printf("Failed to send message to RabbitMQ: %v", err)
-        // Handle the error or return an appropriate gRPC error.
+        return err
     }
 
-    // Return the response
-    return response, nil
+    return nil
 }
+
 
 func GenerateOTP() int {
     // Use the current Unix timestamp (in seconds) as a seed for randomness
