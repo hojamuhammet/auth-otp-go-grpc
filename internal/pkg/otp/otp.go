@@ -160,45 +160,40 @@ func (s *OTPService) VerifyOTP(ctx context.Context, req *pb.VerifyOTPRequest) (*
     phoneNumber := req.PhoneNumber
     otpCode := req.Otp
 
-    // Query the database to get the user's OTP and OTP creation time
+    // Query the database to get the user's OTP and check if it was generated within the last 5 minutes
     var otpFromDB int
     var otpCreatedAt time.Time
-    err := s.db.DB.QueryRow("SELECT otp, otp_created_at FROM users WHERE phone_number = $1", phoneNumber).Scan(&otpFromDB, &otpCreatedAt)
+    err := s.db.DB.QueryRow("SELECT otp, otp_created_at FROM users WHERE phone_number = $1 AND otp_created_at >= NOW() - interval '5 minutes'", phoneNumber).Scan(&otpFromDB, &otpCreatedAt)
+
     if err != nil {
         log.Printf("Error querying OTP from the database: %v", err)
-        return nil, status.Error(codes.Internal, "OTP verification failed")
+
+        // No OTP was found within the last 5 minutes, consider it as expired
+        response := &pb.VerifyOTPResponse{
+            Valid:     false,
+            JwtToken:  "",
+            Message:   "OTP expired",
+        }
+
+        return response, nil
     }
 
-    // Calculate the time difference between the current time and OTP creation time
-    timeDifference := time.Since(otpCreatedAt)
-
-    // Check if the OTP code matches and the OTP was generated within the last 5 minutes
+    // Check if the OTP code matches
     if otpCode == int32(otpFromDB) {
-        if timeDifference <= 5*time.Minute {
-            // Generate a JWT token for the user
-            jwtToken, err := GenerateJWTToken(phoneNumber, s.cfg.JWTSecret)
-            if err != nil {
-                log.Printf("Error generating JWT token: %v", err)
-                return nil, status.Error(codes.Internal, "OTP verification failed")
-            }
-
-            response := &pb.VerifyOTPResponse{
-                Valid:     true,
-                JwtToken:  jwtToken,
-                Message:   "OTP verification successful",
-            }
-
-            return response, nil
-        } else {
-            // OTP has expired
-            response := &pb.VerifyOTPResponse{
-                Valid:     false,
-                JwtToken:  "",
-                Message:   "OTP expired",
-            }
-
-            return response, nil
+        // Generate JWT token for a valid OTP
+        jwtToken, err := GenerateJWTToken(phoneNumber, s.cfg.JWTSecret)
+        if err != nil {
+            log.Printf("Error generating JWT token: %v", err)
+            return nil, status.Error(codes.Internal, "OTP verification failed")
         }
+
+        response := &pb.VerifyOTPResponse{
+            Valid:     true,
+            JwtToken:  jwtToken,
+            Message:   "OTP verification successful",
+        }
+
+        return response, nil
     } else {
         // If the OTP is incorrect, return an error response
         response := &pb.VerifyOTPResponse{
@@ -206,7 +201,6 @@ func (s *OTPService) VerifyOTP(ctx context.Context, req *pb.VerifyOTPRequest) (*
             JwtToken:  "",
             Message:   "Invalid OTP",
         }
-
         return response, nil
     }
 }
