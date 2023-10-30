@@ -241,7 +241,6 @@ func SetJWTSecretEnv() {
     os.Setenv("JWT_SECRET", jwtSecret)
 }
 
-// GenerateJWTSecretKey generates a secure JWT secret key.
 func GenerateJWTSecretKey(keyLength int) (string, error) {
     keyBytes := make([]byte, keyLength)
     _, err := rand.Read(keyBytes)
