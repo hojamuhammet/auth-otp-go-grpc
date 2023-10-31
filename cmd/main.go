@@ -8,10 +8,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/config"
-	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/database"
-	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/rabbitmq"
-	server "github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/server"
+	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/config"
+	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/database"
+	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/rabbitmq"
+	server "github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/server"
 	"github.com/joho/godotenv"
 )
 

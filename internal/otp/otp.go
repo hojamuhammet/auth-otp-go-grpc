@@ -11,9 +11,9 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	pb "github.com/hojamuhammet/go-grpc-otp-rabbitmq/gen"
-	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/config"
-	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/database"
-	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/rabbitmq"
+	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/config"
+	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/database"
+	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/rabbitmq"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"

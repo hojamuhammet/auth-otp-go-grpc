@@ -7,10 +7,10 @@ import (
 	"sync"
 
 	pb "github.com/hojamuhammet/go-grpc-otp-rabbitmq/gen"
-	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/config"
-	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/database"
-	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/otp"
-	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/pkg/rabbitmq"
+	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/config"
+	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/database"
+	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/otp"
+	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/rabbitmq"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
