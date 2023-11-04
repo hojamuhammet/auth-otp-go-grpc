@@ -14,6 +14,7 @@ import (
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/config"
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/database"
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/rabbitmq"
+	smpp "github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/smpp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -23,14 +24,16 @@ type OTPService struct {
 	cfg *config.Config
 	db *database.Database
     rabbitMQService *rabbitmq.RabbitMQService
+    smppClient *smpp.SMPPClient
 	pb.UnimplementedUserServiceServer
 }
 
-func NewOTPService(cfg *config.Config, db *database.Database, rabbitMQService *rabbitmq.RabbitMQService) *OTPService {
+func NewOTPService(cfg *config.Config, db *database.Database, rabbitMQService *rabbitmq.RabbitMQService, smppClient *smpp.SMPPClient) *OTPService {
     return &OTPService{
 		cfg: cfg,
 		db: db,
         rabbitMQService: rabbitMQService,
+        smppClient: smppClient,
 	}
 }
 
