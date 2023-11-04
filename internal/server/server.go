@@ -11,6 +11,7 @@ import (
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/database"
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/otp"
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/rabbitmq"
+	my_smpp "github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/smpp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -21,15 +22,23 @@ type Server struct {
     server *grpc.Server
     db *database.Database
     rabbitMQService *rabbitmq.RabbitMQService
+    smppClient *my_smpp.SMPPClient
     pb.UnimplementedUserServiceServer
 }
 
 // NewServer creates a new instance of the Server.
 func NewServer(cfg *config.Config, db *database.Database, rabbitMQService *rabbitmq.RabbitMQService) *Server {
+    smppClient, err := my_smpp.NewSMPPClient() // Initialize the SMPP client
+	if err != nil {
+		log.Fatalf("Failed to initialize SMPP client: %v", err)
+		return nil
+	}
+
     return &Server{
         cfg: cfg,
         db: db,
         rabbitMQService: rabbitMQService,
+        smppClient: smppClient,
     }
 }
 

@@ -27,12 +27,13 @@ type OTPService struct {
 }
 
 func NewOTPService(cfg *config.Config, db *database.Database, rabbitMQService *rabbitmq.RabbitMQService) *OTPService {
-	return &OTPService{
+    return &OTPService{
 		cfg: cfg,
 		db: db,
         rabbitMQService: rabbitMQService,
 	}
 }
+
 // RegisterUser handles user registration and OTP generation.
 func (s *OTPService) RegisterUser(ctx context.Context, req *pb.RegisterUserRequest) (*pb.Empty, error) {
     phoneNumber := req.PhoneNumber
