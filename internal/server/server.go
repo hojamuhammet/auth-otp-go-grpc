@@ -22,13 +22,13 @@ type Server struct {
     server *grpc.Server
     db *database.Database
     rabbitMQService *rabbitmq.RabbitMQService
-    smppClient *my_smpp.SMPPClient
+    smppConnection *my_smpp.SMPPConnection
     pb.UnimplementedUserServiceServer
 }
 
 // NewServer creates a new instance of the Server.
 func NewServer(cfg *config.Config, db *database.Database, rabbitMQService *rabbitmq.RabbitMQService) *Server {
-    smppClient, err := my_smpp.NewSMPPClient() // Initialize the SMPP client
+    smppConnection, err := my_smpp.NewSMPPConnection() // Initialize the SMPP client
 	if err != nil {
 		log.Fatalf("Failed to initialize SMPP client: %v", err)
 		return nil
@@ -38,7 +38,7 @@ func NewServer(cfg *config.Config, db *database.Database, rabbitMQService *rabbi
         cfg: cfg,
         db: db,
         rabbitMQService: rabbitMQService,
-        smppClient: smppClient,
+        smppConnection: smppConnection,
     }
 }
 
@@ -51,7 +51,7 @@ func (s *Server) Start(ctx context.Context, cfg *config.Config) error {
 
     s.server = grpc.NewServer()
 
-    otpService := otp.NewOTPService(s.cfg, s.db, s.rabbitMQService, s.smppClient)
+    otpService := otp.NewOTPService(s.cfg, s.db, s.rabbitMQService, s.smppConnection)
     pb.RegisterUserServiceServer(s.server, otpService)
 
     reflection.Register(s.server)

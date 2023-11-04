@@ -14,7 +14,7 @@ import (
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/config"
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/database"
 	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/rabbitmq"
-	smpp "github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/smpp"
+	my_smpp "github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/smpp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -24,16 +24,16 @@ type OTPService struct {
 	cfg *config.Config
 	db *database.Database
     rabbitMQService *rabbitmq.RabbitMQService
-    smppClient *smpp.SMPPClient
+    smppConnection *my_smpp.SMPPConnection
 	pb.UnimplementedUserServiceServer
 }
 
-func NewOTPService(cfg *config.Config, db *database.Database, rabbitMQService *rabbitmq.RabbitMQService, smppClient *smpp.SMPPClient) *OTPService {
+func NewOTPService(cfg *config.Config, db *database.Database, rabbitMQService *rabbitmq.RabbitMQService, smppConnection *my_smpp.SMPPConnection) *OTPService {
     return &OTPService{
 		cfg: cfg,
 		db: db,
         rabbitMQService: rabbitMQService,
-        smppClient: smppClient,
+        smppConnection: smppConnection,
 	}
 }
 
@@ -71,7 +71,6 @@ func (s *OTPService) RegisterUser(ctx context.Context, req *pb.RegisterUserReque
     err = s.sendDataToRabbitMQ(phoneNumber, otpCode)
     if err != nil {
         log.Printf("Failed to send data to RabbitMQ: %v", err)
-        // Handle the error or return an appropriate gRPC error.
     }
 
     // Return an empty response
@@ -252,4 +251,9 @@ func GenerateJWTSecretKey(keyLength int) (string, error) {
         return "", err
     }
     return base64.StdEncoding.EncodeToString(keyBytes), nil
+}
+
+func (s *OTPService) SendSMSToUser(phoneNumber string, message string) error {
+    // Use the SMPP connection to send an SMS
+    return s.smppConnection.SendSMS(phoneNumber, message)
 }
