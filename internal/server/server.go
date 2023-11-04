@@ -51,7 +51,7 @@ func (s *Server) Start(ctx context.Context, cfg *config.Config) error {
 
     s.server = grpc.NewServer()
 
-    otpService := otp.NewOTPService(s.cfg, s.db, s.rabbitMQService)
+    otpService := otp.NewOTPService(s.cfg, s.db, s.rabbitMQService, s.smppClient)
     pb.RegisterUserServiceServer(s.server, otpService)
 
     reflection.Register(s.server)
