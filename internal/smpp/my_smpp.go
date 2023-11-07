@@ -10,6 +10,7 @@ import (
 
 type SMPPConnection struct {
     transmitter *smpp.Transmitter
+    statusChan  <-chan smpp.ConnStatus
 }
 
 func NewSMPPConnection() (*SMPPConnection, error) {
@@ -20,14 +21,17 @@ func NewSMPPConnection() (*SMPPConnection, error) {
         Passwd: "Te17evid",
     }
 
-    if err := tx.Bind(); err != nil {
-        log.Fatalf("Failed to bind to SMPP server: %v", err)
-        return nil, smpp.ErrNotBound
+    statusChan := tx.Bind()
+
+    // Wait for the connection to be fully established
+    for status := range statusChan {
+        if status.Status() == smpp.Connected {
+            log.Println("SMPP connection established")
+            return &SMPPConnection{transmitter: tx, statusChan: statusChan}, nil
+        }
     }
 
-    log.Println("SMPP connection established")
-
-    return &SMPPConnection{transmitter: tx}, nil
+    return nil, smpp.ErrNotBound
 }
 
 func (conn *SMPPConnection) SendSMS(phoneNumber string, message string) error {
@@ -40,8 +44,8 @@ func (conn *SMPPConnection) SendSMS(phoneNumber string, message string) error {
         // Add any other required parameters
     }
 
-    // Send the SMS using the established SMPP connection
-    if _, err := conn.transmitter.Submit(sms); err != nil {
+    _, err := conn.transmitter.Submit(sms)
+    if err != nil {
         log.Printf("Failed to send SMS: %v", err)
         return err
     }

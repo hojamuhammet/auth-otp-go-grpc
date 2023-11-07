@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/base64"
+	"fmt"
 	"log"
 	"math/rand"
 	"os"
@@ -38,6 +39,7 @@ func NewOTPService(cfg *config.Config, db *database.Database, rabbitMQService *r
 }
 
 // RegisterUser handles user registration and OTP generation.
+// RegisterUser handles user registration and OTP generation.
 func (s *OTPService) RegisterUser(ctx context.Context, req *pb.RegisterUserRequest) (*pb.Empty, error) {
     phoneNumber := req.PhoneNumber
 
@@ -71,11 +73,20 @@ func (s *OTPService) RegisterUser(ctx context.Context, req *pb.RegisterUserReque
     err = s.sendDataToRabbitMQ(phoneNumber, otpCode)
     if err != nil {
         log.Printf("Failed to send data to RabbitMQ: %v", err)
+        return nil, status.Error(codes.Internal, "Failed to send data to RabbitMQ")
+    }
+
+    // Send the OTP as an SMS
+    smsMessage := fmt.Sprintf("Your OTP code is: %d", otpCode)
+    if err := s.SendSMSToUser(phoneNumber, smsMessage); err != nil {
+        log.Printf("Failed to send SMS: %v", err)
+        return nil, status.Error(codes.Internal, "Failed to send SMS")
     }
 
     // Return an empty response
     return &pb.Empty{}, nil
 }
+
 
 func (s *OTPService) sendDataToRabbitMQ(phoneNumber string, otpCode int32) error {
     // Prepare the data you want to send to RabbitMQ
