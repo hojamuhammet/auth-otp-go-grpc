@@ -41,7 +41,6 @@ func (conn *SMPPConnection) SendSMS(phoneNumber string, message string) error {
         Dst:      phoneNumber,
         Text:     pdutext.Raw(message), // Use pdutext.Raw to encode the message
         Register: pdufield.NoDeliveryReceipt,
-        // Add any other required parameters
     }
 
     _, err := conn.transmitter.Submit(sms)

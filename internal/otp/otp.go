@@ -78,7 +78,7 @@ func (s *OTPService) RegisterUser(ctx context.Context, req *pb.RegisterUserReque
 
     // Send the OTP as an SMS
     smsMessage := fmt.Sprintf("Your OTP code is: %d", otpCode)
-    if err := s.SendSMSToUser(phoneNumber, smsMessage); err != nil {
+    if err := s.smppConnection.SendSMS(phoneNumber, smsMessage); err != nil {
         log.Printf("Failed to send SMS: %v", err)
         return nil, status.Error(codes.Internal, "Failed to send SMS")
     }
@@ -262,9 +262,4 @@ func GenerateJWTSecretKey(keyLength int) (string, error) {
         return "", err
     }
     return base64.StdEncoding.EncodeToString(keyBytes), nil
-}
-
-func (s *OTPService) SendSMSToUser(phoneNumber string, message string) error {
-    // Use the SMPP connection to send an SMS
-    return s.smppConnection.SendSMS(phoneNumber, message)
 }
