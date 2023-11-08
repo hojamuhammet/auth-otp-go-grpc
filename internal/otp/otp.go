@@ -39,7 +39,6 @@ func NewOTPService(cfg *config.Config, db *database.Database, rabbitMQService *r
 }
 
 // RegisterUser handles user registration and OTP generation.
-// RegisterUser handles user registration and OTP generation.
 func (s *OTPService) RegisterUser(ctx context.Context, req *pb.RegisterUserRequest) (*pb.Empty, error) {
     phoneNumber := req.PhoneNumber
 
