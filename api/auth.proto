@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "./gen";
+
+// Define the User message that represents a registered user.
+message User {
+    string phone_number = 1;
+    int32 otp = 2;
+}
+
+// Request message for user registration.
+message RegisterUserRequest {
+    string phone_number = 1;
+}
+
+// Response message for user registration.
+message RegisterUserResponse {
+    User user = 1;
+}
+
+// Request message to verify an OTP for a user.
+message VerifyOTPRequest {
+    string phone_number = 2;
+    int32 otp = 3;
+}
+
+// Response message for OTP verification and JWT token generation.
+message VerifyOTPResponse {
+    bool valid = 1;
+    string jwt_token = 2;
+    string message = 3;
+}
+
+message Empty {}
+
+// Define the UserService service.
+service UserService {
+    // Return empty for security reasons
+    rpc RegisterUser(RegisterUserRequest) returns (Empty);
+
+    // Verify an OTP and return a JWT token and success message if valid.
+    rpc VerifyOTP(VerifyOTPRequest) returns (VerifyOTPResponse);
+}
