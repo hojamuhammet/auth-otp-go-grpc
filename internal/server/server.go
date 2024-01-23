@@ -16,7 +16,6 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-// Server represents your gRPC server.
 type Server struct {
 	cfg             *config.Config
 	server          *grpc.Server
@@ -26,7 +25,6 @@ type Server struct {
 	pb.UnimplementedUserServiceServer
 }
 
-// NewServer creates a new instance of the Server.
 func NewServer(cfg *config.Config, db *database.Database, rabbitMQService *rabbitmq.RabbitMQService) *Server {
 	smppConnection, err := my_smpp.NewSMPPConnection() // Initialize the SMPP client
 	if err != nil {
