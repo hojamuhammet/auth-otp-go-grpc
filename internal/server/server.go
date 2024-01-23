@@ -18,58 +18,55 @@ import (
 
 // Server represents your gRPC server.
 type Server struct {
-    cfg *config.Config
-    server *grpc.Server
-    db *database.Database
-    rabbitMQService *rabbitmq.RabbitMQService
-    smppConnection *my_smpp.SMPPConnection
-    pb.UnimplementedUserServiceServer
+	cfg             *config.Config
+	server          *grpc.Server
+	db              *database.Database
+	rabbitMQService *rabbitmq.RabbitMQService
+	smppConnection  *my_smpp.SMPPConnection
+	pb.UnimplementedUserServiceServer
 }
 
 // NewServer creates a new instance of the Server.
 func NewServer(cfg *config.Config, db *database.Database, rabbitMQService *rabbitmq.RabbitMQService) *Server {
-    smppConnection, err := my_smpp.NewSMPPConnection() // Initialize the SMPP client
+	smppConnection, err := my_smpp.NewSMPPConnection() // Initialize the SMPP client
 	if err != nil {
 		log.Fatalf("Failed to initialize SMPP client: %v", err)
 		return nil
 	}
 
-    return &Server{
-        cfg: cfg,
-        db: db,
-        rabbitMQService: rabbitMQService,
-        smppConnection: smppConnection,
-    }
+	return &Server{
+		cfg:             cfg,
+		db:              db,
+		rabbitMQService: rabbitMQService,
+		smppConnection:  smppConnection,
+	}
 }
 
-// Start starts the gRPC server.
 func (s *Server) Start(ctx context.Context, cfg *config.Config) error {
-    lis, err := net.Listen("tcp", ":"+cfg.GRPCPort)
-    if err != nil {
-        return err
-    }
+	lis, err := net.Listen("tcp", ":"+cfg.GRPCPort)
+	if err != nil {
+		return err
+	}
 
-    s.server = grpc.NewServer()
+	s.server = grpc.NewServer()
 
-    otpService := otp.NewOTPService(s.cfg, s.db, s.rabbitMQService, s.smppConnection)
-    pb.RegisterUserServiceServer(s.server, otpService)
+	otpService := otp.NewOTPService(s.cfg, s.db, s.rabbitMQService, s.smppConnection)
+	pb.RegisterUserServiceServer(s.server, otpService)
 
-    reflection.Register(s.server)
+	reflection.Register(s.server)
 
-    log.Printf("gRPC server started on port %s", s.cfg.GRPCPort)
+	log.Printf("gRPC server started on port %s", s.cfg.GRPCPort)
 
-    return s.server.Serve(lis)
+	return s.server.Serve(lis)
 }
 
-// Stop stops the gRPC server gracefully.
 func (s *Server) Stop() {
-    if s.server != nil {
-        s.server.GracefulStop()
-    }
+	if s.server != nil {
+		s.server.GracefulStop()
+	}
 }
 
-// Wait waits for the server to finish gracefully.
 func (s *Server) Wait() {
-    var wg sync.WaitGroup
-    wg.Wait()
+	var wg sync.WaitGroup
+	wg.Wait()
 }
