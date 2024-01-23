@@ -6,12 +6,13 @@ import (
 	"net"
 	"sync"
 
-	pb "github.com/hojamuhammet/go-grpc-otp-rabbitmq/gen"
-	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/config"
-	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/database"
-	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/otp"
-	"github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/rabbitmq"
-	my_smpp "github.com/hojamuhammet/go-grpc-otp-rabbitmq/internal/smpp"
+	pb "auth-otp-go-grpc/gen"
+	"auth-otp-go-grpc/internal/config"
+	"auth-otp-go-grpc/internal/database"
+	"auth-otp-go-grpc/internal/otp"
+	"auth-otp-go-grpc/internal/rabbitmq"
+	my_smpp "auth-otp-go-grpc/internal/smpp"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
