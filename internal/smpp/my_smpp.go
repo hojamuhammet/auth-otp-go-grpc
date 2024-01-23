@@ -9,46 +9,46 @@ import (
 )
 
 type SMPPConnection struct {
-    transmitter *smpp.Transmitter
-    statusChan  <-chan smpp.ConnStatus
+	transmitter *smpp.Transmitter
+	statusChan  <-chan smpp.ConnStatus
 }
 
 func NewSMPPConnection() (*SMPPConnection, error) {
-    // Create an SMPP transmitter
-    tx := &smpp.Transmitter{
-        Addr:   "119.235.115.204:15019",
-        User:   "Televid",
-        Passwd: "Te17evid",
-    }
+	// Create an SMPP transmitter
+	tx := &smpp.Transmitter{
+		Addr:   "-",
+		User:   "-",
+		Passwd: "-",
+	}
 
-    statusChan := tx.Bind()
+	statusChan := tx.Bind()
 
-    // Wait for the connection to be fully established
-    for status := range statusChan {
-        if status.Status() == smpp.Connected {
-            log.Println("SMPP connection established")
-            return &SMPPConnection{transmitter: tx, statusChan: statusChan}, nil
-        }
-    }
+	// Wait for the connection to be fully established
+	for status := range statusChan {
+		if status.Status() == smpp.Connected {
+			log.Println("SMPP connection established")
+			return &SMPPConnection{transmitter: tx, statusChan: statusChan}, nil
+		}
+	}
 
-    return nil, smpp.ErrNotBound
+	return nil, smpp.ErrNotBound
 }
 
 func (conn *SMPPConnection) SendSMS(phoneNumber string, message string) error {
-    // Create an SMS
-    sms := &smpp.ShortMessage{
-        Src:      "+99362008971", // Replace with your source number
-        Dst:      phoneNumber,
-        Text:     pdutext.Raw(message), // Use pdutext.Raw to encode the message
-        Register: pdufield.NoDeliveryReceipt,
-    }
+	// Create an SMS
+	sms := &smpp.ShortMessage{
+		Src:      "+99362008971", // Replace with your source number
+		Dst:      phoneNumber,
+		Text:     pdutext.Raw(message), // Use pdutext.Raw to encode the message
+		Register: pdufield.NoDeliveryReceipt,
+	}
 
-    _, err := conn.transmitter.Submit(sms)
-    if err != nil {
-        log.Printf("Failed to send SMS: %v", err)
-        return err
-    }
+	_, err := conn.transmitter.Submit(sms)
+	if err != nil {
+		log.Printf("Failed to send SMS: %v", err)
+		return err
+	}
 
-    log.Printf("SMS sent successfully to %s", phoneNumber)
-    return nil
+	log.Printf("SMS sent successfully to %s", phoneNumber)
+	return nil
 }
