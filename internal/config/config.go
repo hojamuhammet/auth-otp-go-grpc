@@ -1,29 +1,52 @@
 package config
 
 import (
-	"os"
+	"auth-otp-go-grpc/pkg/utils"
+	"log"
+	"time"
+
+	"github.com/ilyakaznacheev/cleanenv"
 )
 
 type Config struct {
-	DBHost       string
-	DBPort       string
-	DBUser       string
-	DBPassword   string
-	DBName       string
-	GRPCPort     string
-	RabbitMQ_URL string
-	JWTSecret    string
+	Env        string `yaml:"env"`
+	Database   `yaml:"database"`
+	GrpcServer `yaml:"grpc_server"`
+	JWT        `yaml:"jwt"`
 }
 
-func LoadConfig() Config {
-	return Config{
-		DBHost:       os.Getenv("DB_HOST"),
-		DBPort:       os.Getenv("DB_PORT"),
-		DBUser:       os.Getenv("DB_USER"),
-		DBPassword:   os.Getenv("DB_PASSWORD"),
-		DBName:       os.Getenv("DB_NAME"),
-		GRPCPort:     os.Getenv("GRPC_PORT"),
-		RabbitMQ_URL: os.Getenv("RABBITMQ_URL"),
-		JWTSecret:    os.Getenv("JWT_SECRET"),
+type Database struct {
+	Host     string `yaml:"host"`
+	Port     string `yaml:"port"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+	DBname   string `yaml:"dbname"`
+	Sslmode  string `yaml:"sslmode"`
+}
+
+type GrpcServer struct {
+	Address      string        `yaml:"address"`
+	Timeout      time.Duration `yaml:"timeout"`
+	Idle_Timeout time.Duration `yaml:"idle_timeout"`
+}
+
+type JWT struct {
+	AccessSecretKey  string `yaml:"access_secret_key"`
+	RefreshSecretKey string `yaml:"refresh_secret_key"`
+}
+
+func LoadConfig() *Config {
+	configPath := "./config/config.yaml"
+
+	if configPath == "" {
+		log.Fatalf("config path is not set or config file does not exist")
 	}
+
+	var cfg Config
+
+	if err := cleanenv.ReadConfig(configPath, &cfg); err != nil {
+		log.Fatalf("Cannot read config: %v", utils.Err(err))
+	}
+
+	return &cfg
 }

@@ -3,39 +3,33 @@ package otp
 import (
 	"context"
 	"database/sql"
-	"encoding/base64"
 	"fmt"
 	"log"
 	"math/rand"
-	"os"
 	"time"
 
 	pb "auth-otp-go-grpc/gen"
 	"auth-otp-go-grpc/internal/config"
 	"auth-otp-go-grpc/internal/database"
-	"auth-otp-go-grpc/internal/rabbitmq"
 	my_smpp "auth-otp-go-grpc/internal/smpp"
 
 	"github.com/dgrijalva/jwt-go"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 )
 
 type OTPService struct {
-	cfg             *config.Config
-	db              *database.Database
-	rabbitMQService *rabbitmq.RabbitMQService
-	smppConnection  *my_smpp.SMPPConnection
+	cfg            *config.Config
+	db             *database.Database
+	smppConnection *my_smpp.SMPPConnection
 	pb.UnimplementedUserServiceServer
 }
 
-func NewOTPService(cfg *config.Config, db *database.Database, rabbitMQService *rabbitmq.RabbitMQService, smppConnection *my_smpp.SMPPConnection) *OTPService {
+func NewOTPService(cfg *config.Config, db *database.Database, smppConnection *my_smpp.SMPPConnection) *OTPService {
 	return &OTPService{
-		cfg:             cfg,
-		db:              db,
-		rabbitMQService: rabbitMQService,
-		smppConnection:  smppConnection,
+		cfg:            cfg,
+		db:             db,
+		smppConnection: smppConnection,
 	}
 }
 
@@ -65,12 +59,6 @@ func (s *OTPService) RegisterUser(ctx context.Context, req *pb.RegisterUserReque
 		}
 	}
 
-	err = s.sendDataToRabbitMQ(phoneNumber, otpCode)
-	if err != nil {
-		log.Printf("Failed to send data to RabbitMQ: %v", err)
-		return nil, status.Error(codes.Internal, "Failed to send data to RabbitMQ")
-	}
-
 	smsMessage := fmt.Sprintf("Your OTP code is: %d", otpCode)
 	if err := s.smppConnection.SendSMS(phoneNumber, smsMessage); err != nil {
 		log.Printf("Failed to send SMS: %v", err)
@@ -80,31 +68,14 @@ func (s *OTPService) RegisterUser(ctx context.Context, req *pb.RegisterUserReque
 	return &pb.Empty{}, nil
 }
 
-func (s *OTPService) sendDataToRabbitMQ(phoneNumber string, otpCode int32) error {
-	data := &pb.RegisterUserResponse{
-		User: &pb.User{
-			PhoneNumber: phoneNumber,
-			Otp:         otpCode,
-		},
-	}
-
-	dataBytes, err := proto.Marshal(data)
-	if err != nil {
-		return err
-	}
-
-	err = s.rabbitMQService.PublishMessage(context.Background(), "otp_queue", dataBytes)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func GenerateOTP() int {
-	rand.Seed(time.Now().Unix())
+	const minOTP = 100000
+	const maxOTP = 999999
 
-	otpCode := 100000 + rand.Intn(900000)
+	source := rand.NewSource(time.Now().UnixNano())
+	randomGenerator := rand.New(source)
+
+	otpCode := randomGenerator.Intn(maxOTP-minOTP+1) + minOTP
 
 	return otpCode
 }
@@ -177,7 +148,7 @@ func (s *OTPService) VerifyOTP(ctx context.Context, req *pb.VerifyOTPRequest) (*
 	}
 
 	if otpCode == int32(otpFromDB) {
-		jwtToken, err := GenerateJWTToken(phoneNumber, s.cfg.JWTSecret)
+		jwtToken, err := GenerateJWTToken(phoneNumber, s.cfg.JWT.AccessSecretKey)
 		if err != nil {
 			log.Printf("Error generating JWT token: %v", err)
 			return nil, status.Error(codes.Internal, "OTP verification failed")
@@ -213,22 +184,4 @@ func GenerateJWTToken(phoneNumber string, jwtSecret string) (string, error) {
 	}
 
 	return tokenString, nil
-}
-
-func SetJWTSecretEnv() {
-	jwtSecret, err := GenerateJWTSecretKey(64)
-	if err != nil {
-		log.Fatalf("Failed to generate JWT secret: %v", err)
-	}
-
-	os.Setenv("JWT_SECRET", jwtSecret)
-}
-
-func GenerateJWTSecretKey(keyLength int) (string, error) {
-	keyBytes := make([]byte, keyLength)
-	_, err := rand.Read(keyBytes)
-	if err != nil {
-		return "", err
-	}
-	return base64.StdEncoding.EncodeToString(keyBytes), nil
 }

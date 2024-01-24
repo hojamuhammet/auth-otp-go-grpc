@@ -10,7 +10,6 @@ import (
 	"auth-otp-go-grpc/internal/config"
 	"auth-otp-go-grpc/internal/database"
 	"auth-otp-go-grpc/internal/otp"
-	"auth-otp-go-grpc/internal/rabbitmq"
 	my_smpp "auth-otp-go-grpc/internal/smpp"
 
 	"google.golang.org/grpc"
@@ -18,15 +17,14 @@ import (
 )
 
 type Server struct {
-	cfg             *config.Config
-	server          *grpc.Server
-	db              *database.Database
-	rabbitMQService *rabbitmq.RabbitMQService
-	smppConnection  *my_smpp.SMPPConnection
+	cfg            *config.Config
+	server         *grpc.Server
+	db             *database.Database
+	smppConnection *my_smpp.SMPPConnection
 	pb.UnimplementedUserServiceServer
 }
 
-func NewServer(cfg *config.Config, db *database.Database, rabbitMQService *rabbitmq.RabbitMQService) *Server {
+func NewServer(cfg *config.Config, db *database.Database) *Server {
 	smppConnection, err := my_smpp.NewSMPPConnection() // Initialize the SMPP client
 	if err != nil {
 		log.Fatalf("Failed to initialize SMPP client: %v", err)
@@ -34,27 +32,26 @@ func NewServer(cfg *config.Config, db *database.Database, rabbitMQService *rabbi
 	}
 
 	return &Server{
-		cfg:             cfg,
-		db:              db,
-		rabbitMQService: rabbitMQService,
-		smppConnection:  smppConnection,
+		cfg:            cfg,
+		db:             db,
+		smppConnection: smppConnection,
 	}
 }
 
 func (s *Server) Start(ctx context.Context, cfg *config.Config) error {
-	lis, err := net.Listen("tcp", ":"+cfg.GRPCPort)
+	lis, err := net.Listen("tcp", ":"+cfg.GrpcServer.Address)
 	if err != nil {
 		return err
 	}
 
 	s.server = grpc.NewServer()
 
-	otpService := otp.NewOTPService(s.cfg, s.db, s.rabbitMQService, s.smppConnection)
+	otpService := otp.NewOTPService(s.cfg, s.db, s.smppConnection)
 	pb.RegisterUserServiceServer(s.server, otpService)
 
 	reflection.Register(s.server)
 
-	log.Printf("gRPC server started on port %s", s.cfg.GRPCPort)
+	log.Printf("gRPC server started on port %s", s.cfg.GrpcServer)
 
 	return s.server.Serve(lis)
 }
