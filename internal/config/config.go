@@ -13,6 +13,7 @@ type Config struct {
 	Database   `yaml:"database"`
 	GrpcServer `yaml:"grpc_server"`
 	JWT        `yaml:"jwt"`
+	Smpp       `yaml:"smpp"`
 }
 
 type Database struct {
@@ -30,12 +31,19 @@ type GrpcServer struct {
 	Idle_Timeout time.Duration `yaml:"idle_timeout"`
 }
 
+type Smpp struct {
+	Smpp_Address          string `yaml:"smpp_address"`
+	Smpp_User             string `yaml:"smpp_user"`
+	Smpp_Password         string `yaml:"smpp_password"`
+	Smpp_Src_Phone_Number string `yaml:"smpp_src_phone_number"`
+}
+
 type JWT struct {
 	AccessSecretKey  string `yaml:"access_secret_key"`
 	RefreshSecretKey string `yaml:"refresh_secret_key"`
 }
 
-func LoadConfig() *Config {
+func LoadConfig() Config {
 	configPath := "./config/config.yaml"
 
 	if configPath == "" {
@@ -48,5 +56,5 @@ func LoadConfig() *Config {
 		log.Fatalf("Cannot read config: %v", utils.Err(err))
 	}
 
-	return &cfg
+	return cfg
 }
