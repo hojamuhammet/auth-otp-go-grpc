@@ -3,8 +3,9 @@ package utils
 import (
 	"log/slog"
 	"math/rand"
-	"strconv"
-	"sync"
+	"time"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 func Err(err error) slog.Attr {
@@ -14,28 +15,29 @@ func Err(err error) slog.Attr {
 	}
 }
 
-// Define a global map to store recently generated OTPs
-var recentOTPs = make(map[string]struct{})
+func GenerateOTP() int {
+	const minOTP = 100000
+	const maxOTP = 999999
 
-// Mutex for concurrent access to the recentOTPs map
-var recentOTPsMutex sync.Mutex
+	source := rand.NewSource(time.Now().UnixNano())
+	randomGenerator := rand.New(source)
 
-func GenerateRandomOTP() string {
-	min := 100000
-	max := 999999
+	otpCode := randomGenerator.Intn(maxOTP-minOTP+1) + minOTP
 
-	for {
-		otp := strconv.Itoa(rand.Intn(max-min+1) + min)
+	return otpCode
+}
 
-		// Check if the OTP is not in the recentOTPs map (i.e., it's unique)
-		recentOTPsMutex.Lock()
-		_, exists := recentOTPs[otp]
-		if !exists {
-			// If it's unique, add it to the recentOTPs map and return it
-			recentOTPs[otp] = struct{}{}
-			recentOTPsMutex.Unlock()
-			return otp
-		}
-		recentOTPsMutex.Unlock()
+func GenerateJWTToken(phoneNumber string, jwtSecret string) (string, error) {
+	token := jwt.New(jwt.SigningMethodHS256)
+	claims := token.Claims.(jwt.MapClaims)
+
+	claims["phone_number"] = phoneNumber
+	claims["exp"] = time.Now().Add(time.Hour * 24).Unix() // Token expiration time (1 day)
+
+	tokenString, err := token.SignedString([]byte(jwtSecret))
+	if err != nil {
+		return "", err
 	}
+
+	return tokenString, nil
 }
