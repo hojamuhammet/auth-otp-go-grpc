@@ -2,6 +2,7 @@ package smpp
 
 import (
 	"auth-otp-go-grpc/internal/config"
+	"auth-otp-go-grpc/pkg/utils"
 	"log/slog"
 
 	"github.com/fiorix/go-smpp/smpp"
@@ -25,7 +26,6 @@ func NewSMPPConnection(cfg config.Config) (*SMPPConnection, error) {
 
 	for status := range statusChan {
 		if status.Status() == smpp.Connected {
-			slog.Info("SMPP connection established") // remove these logs if they are extra
 			return &SMPPConnection{transmitter: tx, statusChan: statusChan}, nil
 		}
 	}
@@ -43,7 +43,7 @@ func (conn *SMPPConnection) SendSMS(cfg config.Config, phoneNumber string, smsMe
 
 	_, err := conn.transmitter.Submit(sms)
 	if err != nil {
-		slog.Error("Failed to send SMS: %v", err)
+		slog.Error("Failed to send SMS: %v", utils.Err(err))
 		return err
 	}
 
