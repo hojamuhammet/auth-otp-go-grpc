@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"net"
 	"sync"
@@ -9,49 +10,52 @@ import (
 	pb "auth-otp-go-grpc/gen"
 	"auth-otp-go-grpc/internal/config"
 	"auth-otp-go-grpc/internal/database"
-	"auth-otp-go-grpc/internal/otp"
-	my_smpp "auth-otp-go-grpc/internal/smpp"
+	"auth-otp-go-grpc/internal/service/otp"
+	smpp "auth-otp-go-grpc/internal/service/smpp"
+	"auth-otp-go-grpc/pkg/utils"
+
+	"log/slog"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
 type Server struct {
-	cfg            *config.Config
+	cfg            config.Config
 	server         *grpc.Server
-	db             *database.Database
-	smppConnection *my_smpp.SMPPConnection
+	db             *sql.DB
+	smppConnection *smpp.SMPPConnection
 	pb.UnimplementedUserServiceServer
 }
 
-func NewServer(cfg *config.Config, db *database.Database) *Server {
-	smppConnection, err := my_smpp.NewSMPPConnection() // Initialize the SMPP client
+func NewServer(cfg config.Config, dbInstance *database.Database) *Server {
+	smppConnection, err := smpp.NewSMPPConnection(cfg) // Initialize the SMPP client
 	if err != nil {
-		log.Fatalf("Failed to initialize SMPP client: %v", err)
+		slog.Error("Failed to initialize SMPP client: %v", utils.Err(err))
 		return nil
 	}
 
 	return &Server{
 		cfg:            cfg,
-		db:             db,
+		db:             dbInstance.GetDB(),
 		smppConnection: smppConnection,
 	}
 }
 
-func (s *Server) Start(ctx context.Context, cfg *config.Config) error {
-	lis, err := net.Listen("tcp", ":"+cfg.GrpcServer.Address)
+func (s *Server) Start(ctx context.Context) error {
+	lis, err := net.Listen("tcp", s.cfg.GrpcServer.Address)
 	if err != nil {
 		return err
 	}
 
 	s.server = grpc.NewServer()
 
-	otpService := otp.NewOTPService(s.cfg, s.db, s.smppConnection)
+	otpService := otp.NewOTPService(s.cfg, s.smppConnection)
 	pb.RegisterUserServiceServer(s.server, otpService)
 
 	reflection.Register(s.server)
 
-	log.Printf("gRPC server started on port %s", s.cfg.GrpcServer)
+	log.Printf("gRPC server started: %s", s.cfg.GrpcServer.Address)
 
 	return s.server.Serve(lis)
 }
