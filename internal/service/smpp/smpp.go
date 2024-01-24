@@ -1,7 +1,8 @@
-package my_smpp
+package smpp
 
 import (
-	"log"
+	"auth-otp-go-grpc/internal/config"
+	"log/slog"
 
 	"github.com/fiorix/go-smpp/smpp"
 	"github.com/fiorix/go-smpp/smpp/pdu/pdufield"
@@ -13,18 +14,18 @@ type SMPPConnection struct {
 	statusChan  <-chan smpp.ConnStatus
 }
 
-func NewSMPPConnection() (*SMPPConnection, error) {
+func NewSMPPConnection(cfg config.Config) (*SMPPConnection, error) {
 	tx := &smpp.Transmitter{
-		Addr:   "-",
-		User:   "-",
-		Passwd: "-",
+		Addr:   cfg.Smpp_Address,
+		User:   cfg.Smpp_User,
+		Passwd: cfg.Smpp_Password,
 	}
 
 	statusChan := tx.Bind()
 
 	for status := range statusChan {
 		if status.Status() == smpp.Connected {
-			log.Println("SMPP connection established")
+			slog.Info("SMPP connection established") // remove these logs if they are extra
 			return &SMPPConnection{transmitter: tx, statusChan: statusChan}, nil
 		}
 	}
@@ -32,20 +33,19 @@ func NewSMPPConnection() (*SMPPConnection, error) {
 	return nil, smpp.ErrNotBound
 }
 
-func (conn *SMPPConnection) SendSMS(phoneNumber string, message string) error {
+func (conn *SMPPConnection) SendSMS(cfg config.Config, phoneNumber string, smsMessage string) error {
 	sms := &smpp.ShortMessage{
-		Src:      "+99362008971", // Replace with your source number
+		Src:      cfg.Smpp_Src_Phone_Number,
 		Dst:      phoneNumber,
-		Text:     pdutext.Raw(message), // Use pdutext.Raw to encode the message
+		Text:     pdutext.Raw(smsMessage), // check what provider gets: int, string or raw binary
 		Register: pdufield.NoDeliveryReceipt,
 	}
 
 	_, err := conn.transmitter.Submit(sms)
 	if err != nil {
-		log.Printf("Failed to send SMS: %v", err)
+		slog.Error("Failed to send SMS: %v", err)
 		return err
 	}
 
-	log.Printf("SMS sent successfully to %s", phoneNumber)
 	return nil
 }
