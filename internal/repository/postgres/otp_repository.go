@@ -19,10 +19,6 @@ type PostgresOTPRepository struct {
 	cfg config.Config
 }
 
-func NewPostgresUserRepository(db *sql.DB) *PostgresOTPRepository {
-	return &PostgresOTPRepository{db: db}
-}
-
 func (r *PostgresOTPRepository) CheckUserExistenceInDatabase(phoneNumber string) (bool, error) {
 	var exists bool
 	err := r.db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE phone_number = $1)", phoneNumber).Scan(&exists)
