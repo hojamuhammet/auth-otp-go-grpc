@@ -29,7 +29,7 @@ type Server struct {
 }
 
 func NewServer(cfg config.Config, dbInstance *database.Database) *Server {
-	smppConnection, err := smpp.NewSMPPConnection(cfg) // Initialize the SMPP client
+	smppConnection, err := smpp.NewSMPPConnection(cfg) // Initialize and attach SMPP client connection to main listening port for simplicity
 	if err != nil {
 		slog.Error("Failed to initialize SMPP client: %v", utils.Err(err))
 		return nil
