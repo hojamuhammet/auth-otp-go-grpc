@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -22,19 +21,16 @@ func main() {
 	slog.Info("Starting the server...", slog.String("env", cfg.Env))
 	slog.Debug("Debug messages are enabled") // If env is set to prod, debug messages are going to be disabled
 
-	dbURL := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		cfg.Database.Host, cfg.Database.Port, cfg.Database.User, cfg.Database.Password, cfg.Database.DBname)
-
-	db, err := database.NewDatabase(dbURL)
+	dbInstance, err := database.InitDB(&cfg)
 	if err != nil {
 		log.Error("Failed to connect to the database: %v", err)
 	}
-	defer db.Close()
+	defer dbInstance.Close()
 
-	grpcServer := server.NewServer(cfg, db)
+	grpcServer := server.NewServer(cfg, dbInstance)
 
 	go func() {
-		if err := grpcServer.Start(context.Background(), cfg); err != nil {
+		if err := grpcServer.Start(context.Background()); err != nil {
 			log.Error("Failed to start gRPC server: %v", err)
 		}
 	}()
